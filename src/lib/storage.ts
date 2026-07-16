@@ -43,6 +43,32 @@ export class LocalStorageAdapter implements StorageAdapter {
 // an offline cache/fallback, so the app still opens if the network is down.
 const CLOUD_ROW_ID = "main";
 const CLOUD_TABLE = "app_data";
+const CLOUD_TIMEOUT_MS = 8000;
+
+// Resolve to `fallback` if the promise doesn't settle in time, so a stalled
+// network request can never freeze the UI on "Loading…".
+function withTimeout<T>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    let settled = false;
+    const done = (v: T) => {
+      if (!settled) {
+        settled = true;
+        resolve(v);
+      }
+    };
+    const timer = setTimeout(() => done(fallback), ms);
+    Promise.resolve(p).then(
+      (v) => {
+        clearTimeout(timer);
+        done(v);
+      },
+      () => {
+        clearTimeout(timer);
+        done(fallback);
+      },
+    );
+  });
+}
 
 export class SupabaseAdapter implements StorageAdapter {
   private client: SupabaseClient;
@@ -54,11 +80,13 @@ export class SupabaseAdapter implements StorageAdapter {
 
   async load(): Promise<AppData | null> {
     try {
-      const { data, error } = await this.client
-        .from(CLOUD_TABLE)
-        .select("data")
-        .eq("id", CLOUD_ROW_ID)
-        .maybeSingle();
+      const res = await withTimeout(
+        this.client.from(CLOUD_TABLE).select("data").eq("id", CLOUD_ROW_ID).maybeSingle(),
+        CLOUD_TIMEOUT_MS,
+        null,
+      );
+      if (res === null) throw new Error("cloud load timed out");
+      const { data, error } = res;
       if (error) throw error;
       if (data?.data) {
         const merged = migrate(data.data as AppData);
@@ -79,12 +107,16 @@ export class SupabaseAdapter implements StorageAdapter {
   async save(data: AppData): Promise<void> {
     this.local.save(data); // always keep the local cache current
     try {
-      const { error } = await this.client.from(CLOUD_TABLE).upsert({
-        id: CLOUD_ROW_ID,
-        data,
-        updated_at: new Date().toISOString(),
-      });
-      if (error) throw error;
+      const res = await withTimeout(
+        this.client.from(CLOUD_TABLE).upsert({
+          id: CLOUD_ROW_ID,
+          data,
+          updated_at: new Date().toISOString(),
+        }),
+        CLOUD_TIMEOUT_MS,
+        null,
+      );
+      if (res && res.error) throw res.error;
     } catch (err) {
       console.error("Cloud save failed (kept locally):", err);
     }

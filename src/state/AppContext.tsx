@@ -60,21 +60,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const loadedRef = useRef(false);
 
-  // Load once on mount.
+  // Load once on mount. This must NEVER leave the app stuck on "Loading…":
+  // load() is timeout-guarded in the adapter, the cloud save runs in the
+  // background (not awaited), and the finally block always clears loading.
   useEffect(() => {
     let alive = true;
     (async () => {
-      const existing = await getAdapter().load();
-      if (!alive) return;
-      if (existing) {
-        setData(existing);
-      } else {
-        const seeded = seedData();
-        setData(seeded);
-        await getAdapter().save(seeded);
+      try {
+        const existing = await getAdapter().load();
+        if (!alive) return;
+        if (existing) {
+          setData(existing);
+        } else {
+          const seeded = seedData();
+          setData(seeded);
+          void getAdapter().save(seeded); // background — don't block the UI
+        }
+      } catch (err) {
+        console.error("Initial load failed, starting fresh:", err);
+        if (alive) setData(seedData());
+      } finally {
+        if (alive) {
+          loadedRef.current = true;
+          setLoading(false);
+        }
       }
-      loadedRef.current = true;
-      setLoading(false);
     })();
     return () => {
       alive = false;
