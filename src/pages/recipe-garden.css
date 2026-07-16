@@ -1,0 +1,423 @@
+/* ============================================================
+   Garden & Chili — visual identity (scoped to .garden)
+   A fresh-market cookbook look: deep herb green + hot chili,
+   Fraunces display, Hanken Grotesk body, Space Mono for captions.
+   Everything is scoped under .garden so other screens are untouched.
+   ============================================================ */
+
+.garden {
+  --g-brand: #1f3d2f; /* deep herb green — the brand */
+  --g-brand-2: #2e5442;
+  --g-paper: #fbf7ef; /* warm off-white */
+  --g-paper-2: #f2ebd9; /* deeper paper for insets */
+  --g-card: #fffdf8;
+  --g-ink: #23271f;
+  --g-ink-soft: #5f6455;
+  --g-ink-faint: #9a9584;
+  --g-chili: #e2402c; /* hot accent — actions */
+  --g-chili-ink: #b32b1a;
+  --g-yolk: #f2b13c;
+  --g-sage: #c7d6be;
+  --g-sage-soft: #e6eede;
+  --g-line: #e7dfca;
+  --g-line-strong: #d8ccae;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  font-family: var(--font-body);
+  color: var(--g-ink);
+}
+
+/* ---- Masthead ---- */
+.garden .g-masthead {
+  margin: 4px 0 20px;
+  border-bottom: 2px solid var(--g-brand);
+  padding-bottom: 16px;
+}
+.garden .g-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--g-chili-ink);
+}
+.garden .g-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 120, "SOFT" 50, "WONK" 6;
+  font-weight: 600;
+  font-size: clamp(2.1rem, 7vw, 3rem);
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+  color: var(--g-brand);
+  margin-top: 6px;
+}
+.garden .g-sub {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--g-ink-soft);
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Toolbar / search / filters (scoped overrides) ---- */
+.garden .search {
+  background: var(--g-card);
+  border-color: var(--g-line-strong);
+  border-radius: 4px;
+}
+.garden .search:focus-within {
+  border-color: var(--g-brand);
+  box-shadow: 0 0 0 3px var(--g-sage-soft);
+}
+.garden .search-input {
+  font-family: var(--font-body);
+}
+.garden .fchip {
+  border-color: var(--g-line-strong);
+  background: var(--g-card);
+  color: var(--g-ink-soft);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.garden .fchip.on {
+  background: var(--g-brand);
+  border-color: var(--g-brand);
+  color: var(--g-paper);
+}
+
+/* ---- Section dividers ---- */
+.garden .g-rule {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 26px 0 12px;
+}
+.garden .g-rule .lbl {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--g-brand);
+  white-space: nowrap;
+}
+.garden .g-rule .line {
+  flex: 1;
+  height: 1px;
+  background: var(--g-line-strong);
+}
+.garden .g-rule .count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--g-ink-faint);
+}
+
+/* ---- Recipe card ---- */
+.garden .rc {
+  background: var(--g-card);
+  border: 1px solid var(--g-line);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgba(31, 61, 47, 0.04);
+  overflow: hidden;
+}
+.garden .rc + .rc {
+  margin-top: 12px;
+}
+.garden .rc-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px;
+}
+.garden .rc-main {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.garden .rc-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--g-chili-ink);
+}
+.garden .rc-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 72, "SOFT" 40, "WONK" 4;
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--g-brand);
+  margin: 3px 0 8px;
+}
+.garden .rc-states {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.garden .rc-state {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--g-line-strong);
+  color: var(--g-ink-faint);
+}
+.garden .rc-state.on {
+  background: var(--g-sage-soft);
+  border-color: var(--g-sage);
+  color: var(--g-brand-2);
+}
+.garden .rc-state.on.posted {
+  background: #fdeede;
+  border-color: var(--g-yolk);
+  color: #a06a12;
+}
+.garden .rc-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ---- The signature: caption as a paper recipe card ---- */
+.garden .cap-card {
+  margin: 0 14px 16px;
+  background: var(--g-paper);
+  border: 1px solid var(--g-line-strong);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.garden .cap-card::before {
+  /* stitched top rule in brand green */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--g-brand) 0 10px,
+    transparent 10px 16px
+  );
+}
+.garden .cap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 8px;
+}
+.garden .cap-head .k {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--g-brand);
+}
+.garden .cap-count {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--g-ink-faint);
+}
+.garden .cap-count.over {
+  color: var(--g-chili);
+}
+.garden .cap-body {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.72;
+  white-space: pre-wrap;
+  padding: 4px 16px 16px;
+  color: var(--g-ink);
+  max-height: 360px;
+  overflow-y: auto;
+}
+.garden .cap-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 14px 14px;
+}
+
+/* ---- To-write rows ---- */
+.garden .tw {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--g-card);
+  border: 1px dashed var(--g-line-strong);
+  border-radius: 6px;
+}
+.garden .tw + .tw {
+  margin-top: 8px;
+}
+.garden .tw .body {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.garden .tw .t {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 40, "SOFT" 30;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--g-brand);
+}
+.garden .tw .m {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g-chili-ink);
+  margin-top: 2px;
+}
+
+/* ---- Buttons (scoped) ---- */
+.garden .btn {
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-color: var(--g-line-strong);
+  background: var(--g-card);
+  color: var(--g-ink);
+}
+.garden .btn.primary {
+  background: var(--g-chili);
+  border-color: var(--g-chili);
+  color: #fff;
+}
+.garden .btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--g-ink-soft);
+}
+.garden .btn.danger {
+  color: var(--g-chili-ink);
+  background: transparent;
+  border-color: transparent;
+}
+.garden .icon-btn:hover {
+  background: var(--g-sage-soft);
+  color: var(--g-brand);
+}
+.garden .empty {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   Editor (modal) — scoped, because it renders inside .garden
+   ============================================================ */
+.garden .modal {
+  background: var(--g-card);
+  border-radius: 8px 8px 0 0;
+}
+@media (min-width: 600px) {
+  .garden .modal {
+    border-radius: 8px;
+  }
+}
+.garden .modal h2 {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 90, "SOFT" 50, "WONK" 6;
+  font-weight: 600;
+  color: var(--g-brand);
+  font-size: 1.4rem;
+}
+
+/* Section labels get a roman-numeral spine */
+.garden .modal .field > label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g-ink-soft);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.garden .roman {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 40, "WONK" 10;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--g-chili);
+  min-width: 30px;
+}
+.garden .section-phrase {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  background: var(--g-sage-soft);
+  color: var(--g-brand);
+  border-radius: 3px;
+  border-left: 3px solid var(--g-brand);
+}
+.garden .input,
+.garden .select {
+  border-radius: 4px;
+  border-color: var(--g-line-strong);
+  background: var(--g-paper);
+}
+.garden .textarea {
+  border-radius: 4px;
+  border-color: var(--g-line-strong);
+  background: var(--g-paper);
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.garden .input:focus,
+.garden .textarea:focus,
+.garden .select:focus {
+  border-color: var(--g-brand);
+  box-shadow: 0 0 0 3px var(--g-sage-soft);
+}
+.garden .caption-preview {
+  background: var(--g-paper);
+  border: 1px solid var(--g-line-strong);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.72;
+}
+.garden .divider {
+  background: var(--g-line-strong);
+}
+.garden .segmented {
+  background: var(--g-paper-2);
+  border-radius: 5px;
+}
+.garden .segmented button {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 3px;
+}
+.garden .segmented button.active {
+  background: var(--g-card);
+  color: var(--g-brand);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .garden .rc,
+  .garden .tw {
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .garden .rc:hover {
+    box-shadow: 0 6px 20px rgba(31, 61, 47, 0.08);
+  }
+}

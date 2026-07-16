@@ -1,0 +1,15 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="gladna.joz">
+  <rect width="512" height="512" rx="112" fill="#1F3D2F"/>
+  <!-- steam -->
+  <g stroke="#E2402C" stroke-width="16" stroke-linecap="round" fill="none">
+    <path d="M196 250 q-26 -30 0 -60 q26 -30 0 -60"/>
+    <path d="M256 250 q-26 -30 0 -60 q26 -30 0 -60"/>
+    <path d="M316 250 q-26 -30 0 -60 q26 -30 0 -60"/>
+  </g>
+  <!-- bowl -->
+  <path d="M140 286 H372 A116 116 0 0 1 140 286 Z" fill="#FBF7EF"/>
+  <!-- yolk accent -->
+  <circle cx="256" cy="330" r="26" fill="#F2B13C"/>
+  <!-- rim -->
+  <rect x="128" y="272" width="256" height="20" rx="10" fill="#C7D6BE"/>
+</svg>

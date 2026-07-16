@@ -1,0 +1,115 @@
+// Pluggable storage layer.
+//
+// Everything the app persists goes through a StorageAdapter. Which backend is
+// live is decided in getAdapter():
+//   - If VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY are set  -> cloud sync.
+//   - Otherwise                                              -> per-device localStorage.
+// No page/component code changes when switching — just the env vars.
+
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { AppData } from "../types";
+import { CURRENT_DATA_VERSION, emptyData } from "../types";
+
+export interface StorageAdapter {
+  load(): Promise<AppData | null>;
+  save(data: AppData): Promise<void>;
+}
+
+const STORAGE_KEY = "gladna-joz-organizer:v1";
+
+export class LocalStorageAdapter implements StorageAdapter {
+  async load(): Promise<AppData | null> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return migrate(JSON.parse(raw) as AppData);
+    } catch (err) {
+      console.error("Failed to load data:", err);
+      return null;
+    }
+  }
+
+  async save(data: AppData): Promise<void> {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (err) {
+      console.error("Failed to save data:", err);
+    }
+  }
+}
+
+// Cloud sync. Stores the whole AppData as a single JSON row so it mirrors the
+// same load()/save() contract as localStorage. Also mirrors to localStorage as
+// an offline cache/fallback, so the app still opens if the network is down.
+const CLOUD_ROW_ID = "main";
+const CLOUD_TABLE = "app_data";
+
+export class SupabaseAdapter implements StorageAdapter {
+  private client: SupabaseClient;
+  private local = new LocalStorageAdapter();
+
+  constructor(url: string, anonKey: string) {
+    this.client = createClient(url, anonKey);
+  }
+
+  async load(): Promise<AppData | null> {
+    try {
+      const { data, error } = await this.client
+        .from(CLOUD_TABLE)
+        .select("data")
+        .eq("id", CLOUD_ROW_ID)
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.data) {
+        const merged = migrate(data.data as AppData);
+        this.local.save(merged); // keep an offline cache
+        return merged;
+      }
+      // Cloud is empty (first connect). Seed it from any existing local data so
+      // her current tasks/recipes aren't left behind on this device.
+      const cached = await this.local.load();
+      if (cached) void this.save(cached);
+      return cached;
+    } catch (err) {
+      console.error("Cloud load failed, using local cache:", err);
+      return this.local.load();
+    }
+  }
+
+  async save(data: AppData): Promise<void> {
+    this.local.save(data); // always keep the local cache current
+    try {
+      const { error } = await this.client.from(CLOUD_TABLE).upsert({
+        id: CLOUD_ROW_ID,
+        data,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error("Cloud save failed (kept locally):", err);
+    }
+  }
+}
+
+// Forward-compatible migration hook — upgrade older blobs instead of dropping them.
+function migrate(data: AppData): AppData {
+  return { ...emptyData(), ...data, version: CURRENT_DATA_VERSION };
+}
+
+let adapter: StorageAdapter | null = null;
+
+export function getAdapter(): StorageAdapter {
+  if (adapter) return adapter;
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  adapter =
+    url && key ? new SupabaseAdapter(url, key) : new LocalStorageAdapter();
+  return adapter;
+}
+
+// True when cloud sync is configured — handy for showing a status indicator.
+export function isCloudSync(): boolean {
+  return Boolean(
+    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
+}
