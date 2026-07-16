@@ -94,7 +94,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Persist whenever data changes (after the first load).
   useEffect(() => {
     if (!loadedRef.current) return;
-    getAdapter().save(data);
+    try {
+      void getAdapter().save(data);
+    } catch (err) {
+      console.error("Save failed:", err);
+    }
   }, [data]);
 
   const value = useMemo<AppContextValue>(() => {

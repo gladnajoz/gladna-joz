@@ -132,10 +132,18 @@ let adapter: StorageAdapter | null = null;
 
 export function getAdapter(): StorageAdapter {
   if (adapter) return adapter;
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  adapter =
-    url && key ? new SupabaseAdapter(url, key) : new LocalStorageAdapter();
+  const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  if (url && key) {
+    try {
+      adapter = new SupabaseAdapter(url, key);
+      return adapter;
+    } catch (err) {
+      // A bad/misconfigured URL must never blank the app — fall back to local.
+      console.error("Supabase init failed, using local storage instead:", err);
+    }
+  }
+  adapter = new LocalStorageAdapter();
   return adapter;
 }
 
