@@ -4,6 +4,7 @@ import { createHashRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
 import { AppProvider } from "./state/AppContext";
 import { PasscodeGate } from "./components/PasscodeGate";
+import { PrankOverlay } from "./components/PrankOverlay"; // TEMP joke — remove later
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Tasks } from "./pages/Tasks";
@@ -37,6 +38,7 @@ createRoot(document.getElementById("root")!).render(
       <AppProvider>
         <RouterProvider router={router} />
       </AppProvider>
+      <PrankOverlay />{/* TEMP joke — remove later */}
     </PasscodeGate>
   </StrictMode>,
 );
