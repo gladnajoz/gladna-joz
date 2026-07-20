@@ -60,6 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const loadedRef = useRef(false);
   const skipSaveRef = useRef(false);
+  const lastLocalSaveRef = useRef(0);
 
   // Load once on mount. This must NEVER leave the app stuck on "Loading…":
   // load() is timeout-guarded in the adapter, the cloud save runs in the
@@ -100,6 +101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       skipSaveRef.current = false;
       return;
     }
+    lastLocalSaveRef.current = Date.now();
     try {
       void getAdapter().save(data);
     } catch (err) {
@@ -107,12 +109,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [data]);
 
-  // Re-pull from the cloud whenever the app regains focus, so changes made on
-  // another device show up here (e.g. add a recipe on the laptop → open the
-  // phone → it appears).
+  // Re-pull from the cloud when the user RETURNS to the app (tab/app becomes
+  // visible again), so changes made on another device show up. Deliberately
+  // narrow: only on visibility change (not every focus event, which fires when
+  // the mobile keyboard closes), and never right after a local change — so it
+  // can't clobber something you just added.
   useEffect(() => {
-    const refetch = async () => {
+    const onVisible = async () => {
       if (document.visibilityState !== "visible" || !loadedRef.current) return;
+      if (Date.now() - lastLocalSaveRef.current < 4000) return; // just edited — keep local
       try {
         const fresh = await getAdapter().load();
         if (fresh) {
@@ -123,12 +128,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error("Re-sync failed:", err);
       }
     };
-    document.addEventListener("visibilitychange", refetch);
-    window.addEventListener("focus", refetch);
-    return () => {
-      document.removeEventListener("visibilitychange", refetch);
-      window.removeEventListener("focus", refetch);
-    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const value = useMemo<AppContextValue>(() => {
