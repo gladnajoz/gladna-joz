@@ -13,6 +13,7 @@ export interface TaskDraft {
   recurrence: Recurrence;
   startTime?: string;
   durationMins?: number;
+  notes?: string;
 }
 
 export function TaskEditor({
@@ -52,9 +53,13 @@ export function TaskEditor({
   const [dayOfMonth, setDayOfMonth] = useState(
     initial?.recurrence.type === "monthly" ? initial.recurrence.dayOfMonth : 1,
   );
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [dirty, setDirty] = useState(false);
 
-  const toggleDay = (d: number) =>
+  const toggleDay = (d: number) => {
+    setDirty(true);
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
+  };
 
   const buildRecurrence = (): Recurrence => {
     switch (kind) {
@@ -87,12 +92,18 @@ export function TaskEditor({
       recurrence: buildRecurrence(),
       startTime: useTime ? startTime : undefined,
       durationMins: useTime ? durationMins : undefined,
+      notes: notes.trim() || undefined,
     });
   };
 
   return (
-    <Modal title={initial ? "Edit task" : "New task"} onClose={onClose}>
-      <div className="stack">
+    <Modal
+      title={initial ? "Edit task" : "New task"}
+      onClose={onClose}
+      dirty={dirty}
+      onSave={submit}
+    >
+      <div className="stack" onChange={() => setDirty(true)}>
         <div className="field">
           <label>Task</label>
           <input
@@ -110,13 +121,19 @@ export function TaskEditor({
           <div className="segmented">
             <button
               className={list === "gladna.joz" ? "active" : ""}
-              onClick={() => setList("gladna.joz")}
+              onClick={() => {
+                setDirty(true);
+                setList("gladna.joz");
+              }}
             >
               gladna.joz
             </button>
             <button
               className={list === "personal" ? "active" : ""}
-              onClick={() => setList("personal")}
+              onClick={() => {
+                setDirty(true);
+                setList("personal");
+              }}
             >
               Personal
             </button>
@@ -213,7 +230,10 @@ export function TaskEditor({
               <button
                 type="button"
                 className={"btn sm" + (timed ? " primary" : "")}
-                onClick={() => setTimed((v) => !v)}
+                onClick={() => {
+                  setDirty(true);
+                  setTimed((v) => !v);
+                }}
               >
                 {timed ? "✓ Scheduled" : "+ Add time"}
               </button>
@@ -252,6 +272,19 @@ export function TaskEditor({
             )}
           </div>
         )}
+
+        <div className="field">
+          <label>Notes</label>
+          <textarea
+            className="textarea"
+            value={notes}
+            placeholder={"One note per line…\ne.g. bring the good camera\ncall supplier first"}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+          <span className="faint" style={{ fontSize: "0.78rem" }}>
+            Each line shows as a • bullet.
+          </span>
+        </div>
 
         <div className="row" style={{ marginTop: 6 }}>
           {onDelete && (

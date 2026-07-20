@@ -22,6 +22,7 @@ export interface Task {
   // Optional scheduling — Google-Calendar style start time + duration.
   startTime?: string; // "HH:MM" (24h). Absent = no specific time.
   durationMins?: number; // defaults to 60 when a startTime is set
+  notes?: string; // free text; each line shown as a bullet point
 }
 
 // Per-occurrence completion. Completing one Tuesday instance only marks that date.

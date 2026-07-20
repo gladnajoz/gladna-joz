@@ -605,6 +605,7 @@ a {
   padding: 0;
 }
 .modal {
+  position: relative;
   background: var(--card);
   width: 100%;
   max-width: 520px;
@@ -731,6 +732,68 @@ a {
   justify-content: center;
   color: var(--ink-faint);
   font-family: var(--font-mono);
+}
+
+/* Task notes shown as bullets */
+.task-notes {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  list-style: none;
+}
+.task-notes li {
+  position: relative;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  padding-left: 2px;
+}
+.task-notes li::before {
+  content: "•";
+  position: absolute;
+  left: -12px;
+  color: var(--accent);
+}
+
+/* "Save before leaving?" confirm overlay (inside a modal) */
+.confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(35, 39, 31, 0.45);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.confirm-card {
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+}
+.confirm-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--brand);
+  font-size: 1.2rem;
+}
+.confirm-text {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 8px 0 16px;
+}
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.confirm-actions .btn {
+  width: 100%;
+  justify-content: center;
 }
 
 /* Sync status pill (fixed, unobtrusive) */

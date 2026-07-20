@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../state/AppContext";
 import { Check } from "../components/Check";
+import { TaskNotes } from "../components/TaskNotes";
 import { todayISO, formatLong } from "../lib/date";
 import { formatRange } from "../lib/time";
 import { tasksForDate, isDone, makeCompletionSet } from "../lib/recurrence";
@@ -75,6 +76,7 @@ export function Dashboard() {
                   {formatRange(t.startTime, t.durationMins) && (
                     <div className="meta">🕐 {formatRange(t.startTime, t.durationMins)}</div>
                   )}
+                  <TaskNotes notes={t.notes} />
                 </div>
                 <span className="chip joz">gladna.joz</span>
               </div>
@@ -100,6 +102,7 @@ export function Dashboard() {
                   {formatRange(t.startTime, t.durationMins) && (
                     <div className="meta">🕐 {formatRange(t.startTime, t.durationMins)}</div>
                   )}
+                  <TaskNotes notes={t.notes} />
                 </div>
                 <span className="chip personal">Personal</span>
               </div>

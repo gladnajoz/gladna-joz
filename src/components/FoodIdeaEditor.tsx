@@ -42,6 +42,7 @@ export function FoodIdeaEditor({
   const [posted, setPosted] = useState(idea.posted);
   const [written, setWritten] = useState(idea.written);
   const [showPreview, setShowPreview] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   // Live draft, used for the caption preview + copy.
   const draft: FoodIdea = {
@@ -58,6 +59,9 @@ export function FoodIdeaEditor({
 
   const submit = () => {
     if (!name.trim()) return;
+    // A recipe with real content counts as "written" even if the toggle wasn't
+    // flipped — otherwise a filled-in recipe wrongly shows as not written.
+    const hasRecipe = Boolean(ingredients.trim() || steps.trim());
     onSave({
       name: name.trim(),
       punchLine: punchLine.trim() || undefined,
@@ -70,7 +74,7 @@ export function FoodIdeaEditor({
       notes: notes.trim() || undefined,
       made,
       posted,
-      written,
+      written: written || hasRecipe,
     });
   };
 
@@ -78,9 +82,30 @@ export function FoodIdeaEditor({
     <div className="field">
       <label>Status</label>
       <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-        <Toggle label="Made" on={made} onClick={() => setMade((v) => !v)} />
-        <Toggle label="Posted" on={posted} onClick={() => setPosted((v) => !v)} />
-        <Toggle label="Recipe written" on={written} onClick={() => setWritten((v) => !v)} />
+        <Toggle
+          label="Made"
+          on={made}
+          onClick={() => {
+            setDirty(true);
+            setMade((v) => !v);
+          }}
+        />
+        <Toggle
+          label="Posted"
+          on={posted}
+          onClick={() => {
+            setDirty(true);
+            setPosted((v) => !v);
+          }}
+        />
+        <Toggle
+          label="Recipe written"
+          on={written}
+          onClick={() => {
+            setDirty(true);
+            setWritten((v) => !v);
+          }}
+        />
       </div>
     </div>
   );
@@ -157,8 +182,8 @@ export function FoodIdeaEditor({
   );
 
   return (
-    <Modal title="Food idea / recipe" onClose={onClose}>
-      <div className="stack">
+    <Modal title="Food idea / recipe" onClose={onClose} dirty={dirty} onSave={submit}>
+      <div className="stack" onChange={() => setDirty(true)}>
         {focus === "content" ? (
           <>
             {statusToggles}

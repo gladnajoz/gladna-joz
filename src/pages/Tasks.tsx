@@ -3,6 +3,7 @@ import { useApp } from "../state/AppContext";
 import { Check } from "../components/Check";
 import { TaskEditor } from "../components/TaskEditor";
 import { Toolbar, FilterChips } from "../components/Toolbar";
+import { TaskNotes } from "../components/TaskNotes";
 import type { ListKind, Task } from "../types";
 import { todayISO } from "../lib/date";
 import { formatRange } from "../lib/time";
@@ -95,6 +96,7 @@ export function Tasks() {
                     {describeRecurrence(t.recurrence)}
                     {dueToday ? " · due today" : ""}
                   </div>
+                  <TaskNotes notes={t.notes} />
                 </div>
                 {range && <span className="chip time">🕐 {range}</span>}
                 <button className="icon-btn" onClick={() => setEditing(t)}>
