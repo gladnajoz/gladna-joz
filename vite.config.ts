@@ -35,6 +35,11 @@ export default defineConfig({
         // Cache the built app shell so it opens instantly and works offline.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         navigateFallback: "index.html",
+        // Take over immediately and purge old caches so a new deploy is picked
+        // up on the next load instead of serving a stale version.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

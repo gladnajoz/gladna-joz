@@ -733,6 +733,30 @@ a {
   font-family: var(--font-mono);
 }
 
+/* Sync status pill (fixed, unobtrusive) */
+.sync-badge {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+@media (min-width: 860px) {
+  .sync-badge {
+    top: 12px;
+    right: 14px;
+    font-size: 0.66rem;
+  }
+}
+
 /* Passcode lock screen */
 .lock-screen {
   min-height: 100dvh;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { NAV_ITEMS } from "../nav";
+import { SyncBadge } from "./SyncBadge";
 
 export function Layout() {
   const [moreOpen, setMoreOpen] = useState(false);
@@ -9,6 +10,7 @@ export function Layout() {
 
   return (
     <div className="app">
+      <SyncBadge />
       {/* Desktop sidebar */}
       <aside className="sidebar">
         <div className="brand">

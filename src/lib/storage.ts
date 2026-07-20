@@ -153,3 +153,9 @@ export function isCloudSync(): boolean {
     import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
   );
 }
+
+// True when the LIVE adapter is actually the cloud one (not a local fallback).
+// Reflects reality, so the UI badge can't claim "synced" when it isn't.
+export function isCloudActive(): boolean {
+  return getAdapter() instanceof SupabaseAdapter;
+}

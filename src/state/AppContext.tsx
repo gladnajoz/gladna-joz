@@ -59,6 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(emptyData());
   const [loading, setLoading] = useState(true);
   const loadedRef = useRef(false);
+  const skipSaveRef = useRef(false);
 
   // Load once on mount. This must NEVER leave the app stuck on "Loading…":
   // load() is timeout-guarded in the adapter, the cloud save runs in the
@@ -94,12 +95,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Persist whenever data changes (after the first load).
   useEffect(() => {
     if (!loadedRef.current) return;
+    // Don't write back data we just pulled from the cloud (avoids redundant writes).
+    if (skipSaveRef.current) {
+      skipSaveRef.current = false;
+      return;
+    }
     try {
       void getAdapter().save(data);
     } catch (err) {
       console.error("Save failed:", err);
     }
   }, [data]);
+
+  // Re-pull from the cloud whenever the app regains focus, so changes made on
+  // another device show up here (e.g. add a recipe on the laptop → open the
+  // phone → it appears).
+  useEffect(() => {
+    const refetch = async () => {
+      if (document.visibilityState !== "visible" || !loadedRef.current) return;
+      try {
+        const fresh = await getAdapter().load();
+        if (fresh) {
+          skipSaveRef.current = true;
+          setData(fresh);
+        }
+      } catch (err) {
+        console.error("Re-sync failed:", err);
+      }
+    };
+    document.addEventListener("visibilitychange", refetch);
+    window.addEventListener("focus", refetch);
+    return () => {
+      document.removeEventListener("visibilitychange", refetch);
+      window.removeEventListener("focus", refetch);
+    };
+  }, []);
 
   const value = useMemo<AppContextValue>(() => {
     const update = (fn: (d: AppData) => AppData) => setData((prev) => fn(prev));
