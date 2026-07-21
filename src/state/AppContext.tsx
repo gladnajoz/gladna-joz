@@ -17,7 +17,7 @@ import type {
   ListKind,
 } from "../types";
 import { emptyData } from "../types";
-import { getAdapter } from "../lib/storage";
+import { getAdapter, isCloudActive } from "../lib/storage";
 import { seedData } from "../lib/seed";
 import { uid } from "../lib/id";
 import { toggleCompletion } from "../lib/recurrence";
@@ -25,6 +25,10 @@ import { toggleCompletion } from "../lib/recurrence";
 interface AppContextValue {
   data: AppData;
   loading: boolean;
+
+  // Sync status for the UI badge.
+  cloud: boolean; // true when the live adapter is the cloud one
+  lastSyncedAt: number | null; // epoch ms of the last successful cloud read/write
 
   // Tasks
   addTask: (t: Omit<Task, "id" | "createdAt" | "sortOrder"> & { sortOrder?: number }) => void;
@@ -58,9 +62,17 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(emptyData());
   const [loading, setLoading] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const loadedRef = useRef(false);
   const skipSaveRef = useRef(false);
   const lastLocalSaveRef = useRef(0);
+  // The cloud row's updated_at that our local state currently reflects. The
+  // poller compares against this to notice another device's write cheaply.
+  const syncedStampRef = useRef<string | null>(null);
+  // Latest data, so the debounced save always flushes the freshest snapshot.
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const saveTimerRef = useRef<number | null>(null);
 
   // Load once on mount. This must NEVER leave the app stuck on "Loading…":
   // load() is timeout-guarded in the adapter, the cloud save runs in the
@@ -78,6 +90,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setData(seeded);
           void getAdapter().save(seeded); // background — don't block the UI
         }
+        // Record the cloud stamp we just loaded so the poller doesn't treat the
+        // data we already have as a "remote change" on its first tick.
+        try {
+          syncedStampRef.current = await getAdapter().remoteStamp();
+        } catch {
+          syncedStampRef.current = null;
+        }
+        if (alive) setLastSyncedAt(Date.now());
       } catch (err) {
         console.error("Initial load failed, starting fresh:", err);
         if (alive) setData(seedData());
@@ -93,7 +113,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Persist whenever data changes (after the first load).
+  // Persist whenever data changes (after the first load), debounced so a burst
+  // of edits collapses into one cloud write and the last-write-wins window with
+  // another device stays as small as possible.
   useEffect(() => {
     if (!loadedRef.current) return;
     // Don't write back data we just pulled from the cloud (avoids redundant writes).
@@ -101,35 +123,90 @@ export function AppProvider({ children }: { children: ReactNode }) {
       skipSaveRef.current = false;
       return;
     }
-    lastLocalSaveRef.current = Date.now();
-    try {
-      void getAdapter().save(data);
-    } catch (err) {
-      console.error("Save failed:", err);
-    }
+    lastLocalSaveRef.current = Date.now(); // mark: a local edit is pending
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      lastLocalSaveRef.current = Date.now(); // mark: our write is landing now
+      Promise.resolve(getAdapter().save(dataRef.current))
+        .then(async () => {
+          // Adopt the stamp our own write produced so the poller doesn't then
+          // re-pull our own change as if it were remote.
+          try {
+            syncedStampRef.current = await getAdapter().remoteStamp();
+          } catch {
+            /* keep previous stamp */
+          }
+          setLastSyncedAt(Date.now());
+        })
+        .catch((err) => console.error("Save failed:", err));
+    }, 700);
   }, [data]);
 
-  // Re-pull from the cloud when the user RETURNS to the app (tab/app becomes
-  // visible again), so changes made on another device show up. Deliberately
-  // narrow: only on visibility change (not every focus event, which fires when
-  // the mobile keyboard closes), and never right after a local change — so it
-  // can't clobber something you just added.
+  // Flush a pending debounced save the moment the app is backgrounded or closed,
+  // so a quick edit-then-switch-away still reaches the cloud instead of waiting
+  // for the debounce (which might never fire if the tab is discarded).
   useEffect(() => {
-    const onVisible = async () => {
-      if (document.visibilityState !== "visible" || !loadedRef.current) return;
-      if (Date.now() - lastLocalSaveRef.current < 4000) return; // just edited — keep local
-      try {
-        const fresh = await getAdapter().load();
-        if (fresh) {
-          skipSaveRef.current = true;
-          setData(fresh);
-        }
-      } catch (err) {
-        console.error("Re-sync failed:", err);
+    const flush = () => {
+      if (document.visibilityState === "hidden" && saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        lastLocalSaveRef.current = Date.now();
+        void getAdapter().save(dataRef.current);
       }
     };
+    document.addEventListener("visibilitychange", flush);
+    return () => document.removeEventListener("visibilitychange", flush);
+  }, []);
+
+  // Live sync: while the tab/app is visible, poll the cloud's updated_at and,
+  // when another device has written, pull the fresh blob in. Polling (rather
+  // than only reacting to visibility changes) is what makes edits actually cross
+  // devices — a desktop tab or foregrounded PWA may never fire a visibility
+  // event, so it would otherwise never learn about the other device's changes.
+  useEffect(() => {
+    if (!isCloudActive()) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (document.visibilityState !== "visible" || !loadedRef.current) return;
+      try {
+        const stamp = await getAdapter().remoteStamp();
+        if (cancelled || !stamp || stamp === syncedStampRef.current) return;
+
+        // The cloud changed. If we just wrote locally, this is almost certainly
+        // our own write echoing back — adopt the stamp and keep our local state.
+        if (Date.now() - lastLocalSaveRef.current < 8000) {
+          syncedStampRef.current = stamp;
+          setLastSyncedAt(Date.now());
+          return;
+        }
+
+        // A genuine remote change — pull it in. (Whole-blob last-write-wins: safe
+        // here because we only reach this branch when we have no pending edit.)
+        const fresh = await getAdapter().load();
+        if (cancelled || !fresh) return;
+        syncedStampRef.current = stamp;
+        skipSaveRef.current = true;
+        setData(fresh);
+        setLastSyncedAt(Date.now());
+      } catch (err) {
+        console.error("Sync poll failed:", err);
+      }
+    };
+
+    const interval = window.setInterval(tick, 6000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    void tick(); // run once immediately
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const value = useMemo<AppContextValue>(() => {
@@ -138,6 +215,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return {
       data,
       loading,
+      cloud: isCloudActive(),
+      lastSyncedAt,
 
       addTask: (t) =>
         update((d) => ({
@@ -275,7 +354,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setData(emptyData());
       },
     };
-  }, [data, loading]);
+  }, [data, loading, lastSyncedAt]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -13,6 +13,10 @@ import { CURRENT_DATA_VERSION, emptyData } from "../types";
 export interface StorageAdapter {
   load(): Promise<AppData | null>;
   save(data: AppData): Promise<void>;
+  // Cheap "has the cloud changed?" probe — returns the row's updated_at (or null
+  // for local-only). Lets the app poll for remote edits without pulling the whole
+  // blob every time. Null on the local adapter (nothing to poll).
+  remoteStamp(): Promise<string | null>;
 }
 
 const STORAGE_KEY = "gladna-joz-organizer:v1";
@@ -35,6 +39,10 @@ export class LocalStorageAdapter implements StorageAdapter {
     } catch (err) {
       console.error("Failed to save data:", err);
     }
+  }
+
+  async remoteStamp(): Promise<string | null> {
+    return null; // no remote to poll
   }
 }
 
@@ -119,6 +127,23 @@ export class SupabaseAdapter implements StorageAdapter {
       if (res && res.error) throw res.error;
     } catch (err) {
       console.error("Cloud save failed (kept locally):", err);
+    }
+  }
+
+  // Fetch just the row's updated_at — a tiny query the app polls to notice when
+  // another device has written. Returns null on error/timeout so the caller
+  // simply skips this tick instead of thrashing.
+  async remoteStamp(): Promise<string | null> {
+    try {
+      const res = await withTimeout(
+        this.client.from(CLOUD_TABLE).select("updated_at").eq("id", CLOUD_ROW_ID).maybeSingle(),
+        CLOUD_TIMEOUT_MS,
+        null,
+      );
+      if (res === null || res.error) return null;
+      return (res.data?.updated_at as string | undefined) ?? null;
+    } catch {
+      return null;
     }
   }
 }

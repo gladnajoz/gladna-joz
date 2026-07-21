@@ -1,9 +1,19 @@
-import { isCloudActive } from "../lib/storage";
+import { useApp } from "../state/AppContext";
 
 // Tiny status pill so you can always tell whether the app is talking to the
-// cloud (synced across devices) or only saving on this device.
+// cloud (synced across devices) or only saving on this device — and, when
+// synced, roughly when it last reached the cloud, so live syncing is visible.
 export function SyncBadge() {
-  const cloud = isCloudActive();
+  const { cloud, lastSyncedAt } = useApp();
+
+  const when =
+    cloud && lastSyncedAt
+      ? new Date(lastSyncedAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
+
   return (
     <div
       className="sync-badge"
@@ -18,7 +28,7 @@ export function SyncBadge() {
           : "Saving on this device only — not syncing"
       }
     >
-      {cloud ? "☁ Synced" : "⚠ This device only"}
+      {cloud ? (when ? `☁ Synced · ${when}` : "☁ Synced") : "⚠ This device only"}
     </div>
   );
 }
