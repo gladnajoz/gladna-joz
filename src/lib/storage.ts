@@ -153,12 +153,34 @@ function migrate(data: AppData): AppData {
   return { ...emptyData(), ...data, version: CURRENT_DATA_VERSION };
 }
 
+// Env values pasted into a hosting dashboard often arrive with junk: surrounding
+// quotes, whitespace, or a stray label like "Value: https://…" copied along with
+// the value. Sanitize so one bad paste can't silently drop us to local-only.
+function cleanEnv(v: string | undefined): string {
+  if (!v) return "";
+  return v.trim().replace(/^['"]+|['"]+$/g, "").trim();
+}
+
+// Pull a usable https URL out of the configured value, even if it has a prefix
+// (e.g. "Value: https://…") or a trailing slash/path.
+function cleanUrl(v: string | undefined): string {
+  const s = cleanEnv(v);
+  const m = s.match(/https?:\/\/[^\s'"]+/);
+  return (m ? m[0] : s).replace(/\/+$/, "");
+}
+
+function supabaseConfig(): { url: string; key: string } {
+  return {
+    url: cleanUrl(import.meta.env.VITE_SUPABASE_URL),
+    key: cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY),
+  };
+}
+
 let adapter: StorageAdapter | null = null;
 
 export function getAdapter(): StorageAdapter {
   if (adapter) return adapter;
-  const url = import.meta.env.VITE_SUPABASE_URL?.trim();
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  const { url, key } = supabaseConfig();
   if (url && key) {
     try {
       adapter = new SupabaseAdapter(url, key);
@@ -174,9 +196,8 @@ export function getAdapter(): StorageAdapter {
 
 // True when cloud sync is configured — handy for showing a status indicator.
 export function isCloudSync(): boolean {
-  return Boolean(
-    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
-  );
+  const { url, key } = supabaseConfig();
+  return Boolean(url && key);
 }
 
 // True when the LIVE adapter is actually the cloud one (not a local fallback).
